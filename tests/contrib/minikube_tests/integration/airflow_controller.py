@@ -14,7 +14,6 @@
 
 import subprocess
 import time
-import logging
 
 
 class RunCommandError(Exception):
@@ -106,6 +105,7 @@ def get_dag_run_table(postgres_pod=None):
         """psql airflow -c "select * from dag_run" """
     )
     return stdout
+
 
 def get_task_instance_table(postgres_pod=None):
     postgres_pod = postgres_pod or _get_postgres_pod()
