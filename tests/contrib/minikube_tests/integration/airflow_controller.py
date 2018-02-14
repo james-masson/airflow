@@ -14,7 +14,7 @@
 
 import subprocess
 import time
-
+import logging
 
 class RunCommandError(Exception):
     pass
@@ -115,6 +115,7 @@ def dag_final_state(dag_id, run_id, postgres_pod=None, poll_interval=1, timeout=
     for _ in range(0, timeout / poll_interval):
         dag_state = get_dag_run_state(dag_id, run_id, postgres_pod)
         if dag_state != DagRunState.RUNNING:
+            capture_logs_for_failure(dag_state)
             return dag_state
         time.sleep(poll_interval)
 
@@ -130,3 +131,14 @@ def _kill_pod(pod_name):
 def kill_scheduler():
     airflow_pod = _get_pod_by_grep("^airflow")
     return _kill_pod(airflow_pod)
+
+
+def capture_logs_for_failure(state):
+    if state != DagRunState.SUCCESS:
+        stdout, stderr = get_scheduler_logs()
+        logging.error("stdout:")
+        for line in stdout.split('\n'):
+            logging.error(line)
+        logging.error("stderr:")
+        for line in stderr.split('\n'):
+            logging.error(line)
