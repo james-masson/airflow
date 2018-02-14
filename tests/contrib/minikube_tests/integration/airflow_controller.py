@@ -16,6 +16,7 @@ import subprocess
 import time
 import logging
 
+
 class RunCommandError(Exception):
     pass
 
@@ -98,6 +99,23 @@ def _parse_state(stdout):
     raise Exception("Unknown psql output: {}".format(stdout))
 
 
+def get_dag_run_table(postgres_pod=None):
+    postgres_pod = postgres_pod or _get_postgres_pod()
+    stdout, stderr = run_command_in_pod(
+        postgres_pod, "postgres",
+        """psql airflow -c "select * from dag_run" """
+    )
+    return stdout
+
+def get_task_instance_table(postgres_pod=None):
+    postgres_pod = postgres_pod or _get_postgres_pod()
+    stdout, stderr = run_command_in_pod(
+        postgres_pod, "postgres",
+        """psql airflow -c "select * from task_instance" """
+    )
+    return stdout
+
+
 def get_dag_run_state(dag_id, run_id, postgres_pod=None):
     postgres_pod = postgres_pod or _get_postgres_pod()
     stdout, stderr = run_command_in_pod(
@@ -136,9 +154,13 @@ def kill_scheduler():
 def capture_logs_for_failure(state):
     if state != DagRunState.SUCCESS:
         stdout, stderr = get_scheduler_logs()
-        logging.error("stdout:")
+        print("stdout:")
         for line in stdout.split('\n'):
-            logging.error(line)
-        logging.error("stderr:")
+            print(line)
+        print("stderr:")
         for line in stderr.split('\n'):
-            logging.error(line)
+            print(line)
+        print("dag_run:")
+        print(get_dag_run_table())
+        print("task_instance")
+        print(get_task_instance_table())
